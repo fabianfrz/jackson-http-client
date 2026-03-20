@@ -6,6 +6,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,22 +18,21 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class JSONBodyReaderTest {
-    HttpServer server;
+class YAMLConversationTest {
+    private HttpServer server;
+    private byte[] body;
 
     public void handle(HttpExchange t) throws IOException {
-        byte[] body = null;
         try (InputStream is = t.getRequestBody()) {
             body = IOUtils.toByteArray(is);
         }
         String response = """
-                {
-                    "message": "Hello World!"
-                }
+                message: Hello World!
                 """;
-        t.getResponseHeaders().set("Content-Type", "application/json");
+        t.getResponseHeaders().set("Content-Type", "text/yaml");
         t.sendResponseHeaders(200, response.length());
         try (OutputStream os = t.getResponseBody()) {
             os.write(response.getBytes(StandardCharsets.UTF_8));
@@ -60,12 +60,13 @@ class JSONBodyReaderTest {
         MockRequest data = new MockRequest();
         data.setData("Data");
         try (HttpClient httpClient = HttpClient.newBuilder().build()) {
+            YAMLMapper mapper = new YAMLMapper();
             var request = HttpRequest.newBuilder(new URI("http://127.0.0.1:8000/endpoint"))
-                .header("Content-Type", "application/json")
-                .POST(new JSONBodyPublisher<>(data))
+                .header("Content-Type", "text/yaml")
+                .POST(new JSONBodyPublisher<>(data, mapper))
                 .build();
             var response = assertDoesNotThrow(
-                () -> httpClient.send(request, new JSONBodyHandler<>(MockResponse.class))
+                () -> httpClient.send(request, new JSONBodyHandler<>(MockResponse.class, mapper, "text/yaml"))
             );
             assertEquals("Hello World!", response.body().getMessage());
         }
