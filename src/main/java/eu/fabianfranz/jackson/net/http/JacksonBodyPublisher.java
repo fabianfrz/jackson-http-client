@@ -12,14 +12,14 @@ import java.util.concurrent.Flow;
  * It converts the object to JSON and then slices it into 4k blocks, which are sent to the HTTP client implementation.
  * @param <T>
  */
-public class JSONBodyPublisher<T> implements HttpRequest.BodyPublisher {
+public class JacksonBodyPublisher<T> implements HttpRequest.BodyPublisher {
     private final byte[] bytes;
 
     /**
      * JSON Body publisher that serializes the object using the standard ObjectMapper.
      * @param data the data to serialize.
      */
-    public JSONBodyPublisher(T data) {
+    public JacksonBodyPublisher(T data) {
         this(data, new ObjectMapper());
     }
 
@@ -28,7 +28,7 @@ public class JSONBodyPublisher<T> implements HttpRequest.BodyPublisher {
      * @param data the data to serialize
      * @param mapper the object mapper that serializes the data.
      */
-    public JSONBodyPublisher(T data, ObjectMapper mapper) {
+    public JacksonBodyPublisher(T data, ObjectMapper mapper) {
         bytes = mapper.writeValueAsBytes(data);
     }
 
@@ -39,6 +39,6 @@ public class JSONBodyPublisher<T> implements HttpRequest.BodyPublisher {
 
     @Override
     public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
-        subscriber.onSubscribe(new JSONSubscription(subscriber, bytes));
+        subscriber.onSubscribe(new JacksonSubscription(subscriber, bytes));
     }
 }

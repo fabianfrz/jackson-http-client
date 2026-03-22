@@ -1,8 +1,7 @@
 package eu.fabianfranz.jackson.net.http;
 
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayOutputStream;
@@ -20,16 +19,33 @@ import java.util.concurrent.Flow;
  * Afterward we have to read the entire body and then decode the result.
  * @param <T> the return type to be serialized
  */
-public class JSONBodySubscriber<T> implements HttpResponse.BodySubscriber<T> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(JSONBodySubscriber.class.getName());
+public class JacksonBodySubscriber<T> implements HttpResponse.BodySubscriber<T> {
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
     private final CompletableFuture<T> future = new CompletableFuture<>();
     private final Class<T> clazz;
     private final ObjectMapper mapper;
+    private final TypeReference<T> typeReference;
 
-    public JSONBodySubscriber(Class<T> clazz, ObjectMapper mapper) {
+    /**
+     * This constuctor allows to deserialize a simple class
+     * @param clazz the class to deserialize
+     * @param mapper the mapper used for deserialization
+     */
+    public JacksonBodySubscriber(Class<T> clazz, ObjectMapper mapper) {
         this.clazz = clazz;
         this.mapper = mapper;
+        this.typeReference = null;
+    }
+
+    /**
+     * This constructor allows to use a type reference for typed generic collections etc.
+     * @param typeReference the type of the return value
+     * @param mapper the mapper to use
+     */
+    public JacksonBodySubscriber(TypeReference<T> typeReference, ObjectMapper mapper) {
+        this.clazz = null;
+        this.mapper = mapper;
+        this.typeReference = typeReference;
     }
 
     @Override
@@ -58,13 +74,14 @@ public class JSONBodySubscriber<T> implements HttpResponse.BodySubscriber<T> {
 
     @Override
     public void onError(Throwable throwable) {
-        LOGGER.error("Error on response parsing", throwable);
-        future.cancel(true);
+        future.completeExceptionally(throwable); // this will rethrow the exception on .get().
     }
 
     @Override
     public void onComplete() {
-        T obj = mapper.readValue(output.toByteArray(), clazz);
+        T obj = typeReference != null
+            ? mapper.readValue(output.toByteArray(), typeReference)
+            : mapper.readValue(output.toByteArray(), clazz);
         future.complete(obj);
     }
 }
