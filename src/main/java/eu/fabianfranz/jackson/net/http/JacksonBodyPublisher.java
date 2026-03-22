@@ -14,13 +14,14 @@ import java.util.concurrent.Flow;
  */
 public class JacksonBodyPublisher<T> implements HttpRequest.BodyPublisher {
     private final byte[] bytes;
+    private final static ObjectMapper DEFAULT_MAPPER = new ObjectMapper();
 
     /**
      * JSON Body publisher that serializes the object using the standard ObjectMapper.
      * @param data the data to serialize.
      */
     public JacksonBodyPublisher(T data) {
-        this(data, new ObjectMapper());
+        this(data, DEFAULT_MAPPER);
     }
 
     /**

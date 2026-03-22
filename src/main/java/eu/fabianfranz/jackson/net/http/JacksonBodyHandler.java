@@ -21,6 +21,7 @@ import java.net.http.HttpResponse;
  */
 public class JacksonBodyHandler<T> implements HttpResponse.BodyHandler<T> {
 
+    private final static ObjectMapper DEFAULT_MAPPER = new ObjectMapper();
     private final Class<T> clazz;
     private final ObjectMapper mapper;
     private final String contentType;
@@ -34,7 +35,7 @@ public class JacksonBodyHandler<T> implements HttpResponse.BodyHandler<T> {
      * @param clazz the class to deserialize
      */
     public JacksonBodyHandler(Class<T> clazz) {
-        this(clazz, new ObjectMapper());
+        this(clazz, DEFAULT_MAPPER);
     }
 
     /**
